@@ -17,6 +17,13 @@ use Illuminate\Http\Request;
 //    return $request->user();
 //});
 
+Route::group(['namespace' => 'Front'],
+    function () {
+
+        Route::post('/report/index', 'ReportController@index');
+        Route::post('/report/create', 'ReportController@create');
+
+    });
 
 
 
