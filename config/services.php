@@ -30,4 +30,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'ScoreCriteria' => [
+        'f' => 1,
+        'i' => 2,
+        'a' => 3,
+        'e' => 4,
+    ],
+
 ];
