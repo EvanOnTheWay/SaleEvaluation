@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class ReportService extends BaseService
 {
     /**
-     * 获取评测信息(对应等级下能力维度、词条、题库)
+     * 获取评测信息(对应等级下能力维度、词条、题库)，所有option中status=0
      *
      * @param $RankId
      * @return array
@@ -61,12 +61,75 @@ class ReportService extends BaseService
                         ->get()
                         ->toArray();
 
+                    foreach ($option_data as $kz => $vz) {
+                        $vz->Status = 0;
+                    }
+
+                    $vx->option_data = $option_data;
+                }
+            }
+        }
+
+        return $ability_data;
+    }
+
+    /**
+     * 获取评测信息(对应等级下能力维度、词条、题库)，模拟测试数据使用，最终这里会是前端传送过来
+     *
+     * @param $RankId
+     * @return array
+     */
+    public static function getRankInfos($RankId)
+    {
+        $rank_id = intval($RankId);
+
+        // 能力维度
+        $ability_data = DB::table('snets_emp_Ability')->select([
+            'Id', 'Title', 'Intro'
+        ])
+            ->where('RankId', '=', $rank_id)
+            ->where('Depth', '=', '1')
+            ->where('Pid', '=', '0')
+            ->get()
+            ->toArray();
+
+        // 对应词条
+        foreach ($ability_data as $key => $value) {
+            $entry_data = DB::table('snets_emp_Ability')->select([
+                'Id', 'Title', 'Pid', 'Intro', 'ScoreCriteria', 'ArrivelLevel'
+            ])
+                ->where('Depth', '=', '2')
+                ->where('Pid', '=', $value->Id)
+                ->get()
+                ->toArray();
+            $ability_data[$key]->entry_data = $entry_data;
+
+            // 对应问题
+            foreach ($entry_data as $ks => $vs) {
+                $question_data = DB::table('snets_tst_Question')->select([
+                    'Id', 'Title'
+                ])
+                    ->where('AbilityId', '=', $vs->Id)
+                    ->get()
+                    ->toArray();
+                $vs->PTitle = $value->Title;
+                $vs->question_data = $question_data;
+
+                // 对应选项
+                foreach ($question_data as $kx => $vx) {
+                    $option_data = DB::table('snets_tst_OptionItem')->select([
+                        'Id', 'Title'
+                    ])
+                        ->where('QuestionId', '=', $vx->Id)
+                        ->get()
+                        ->toArray();
+
                     // 这里status 随机给0，1 测试用
                     foreach ($option_data as $kz => $vz) {
                         if ($kz%2 == 0){
-                            $vz->status = 0;
+                            $vz->Status = 0;
                         }else{
-                            $vz->status = 1;
+                            $vz->Status = 1;
                         }
                     }
 
@@ -112,7 +175,12 @@ class ReportService extends BaseService
      */
     public static function insertReport($RankId, $EmployeeId, $OtherId, $UserContent, $UserContents, $UserContentx, $Type, $Summary, $UserReport)
     {
-        $result = DB::table('snets_tst_Report')->insert([
+        if ($Type == 1) {
+            $Status = 2;
+        } else {
+            $Status = 0;
+        }
+        DB::table('snets_tst_Report')->insert([
             'RankId' => $RankId,
             'EmployeeId' => $EmployeeId,
             'OtherId' => $OtherId,
@@ -123,8 +191,7 @@ class ReportService extends BaseService
             'UserSummary' => $Summary,
             'UserReport' => $UserReport,
             'ReportInfo' => $UserReport,
-            'Status' => 0,
-            'OnlineStatus' => 1,
+            'Status' => $Status,
             'SeltTime' => Carbon::now(),
             'CreatedTime' => Carbon::now(),
         ]);
@@ -136,18 +203,32 @@ class ReportService extends BaseService
     /**
      * 他评信息入库（update）
      *
-     * @param $EmployeeId
-     * @param $OtherId
+     * @param $ReportId
      * @param $OtherContent
      * @param $OtherContents
      * @param $OtherContentx
-     * @param $Summary
-     * @param $Reports
-     * @return void
+     * @param $OtherSummary
+     * @param $OtherReport
+     * @param $ReportInfo
+     * @return int
      */
-    public static function updateReport($EmployeeId, $OtherId, $OtherContent, $OtherContents, $OtherContentx, $Summary, $Reports)
+    public static function updateReport($ReportId, $OtherContent, $OtherContents, $OtherContentx, $OtherSummary, $OtherReport, $ReportInfo)
     {
+        $result = DB::table('snets_tst_Report')
+            ->where('Id', $ReportId)
+            ->update([
+                'OtherContent' => $OtherContent,
+                'OtherContents' => $OtherContents,
+                'OtherContentx' => $OtherContentx,
+                'OtherSummary' => $OtherSummary,
+                'OtherReport' => $OtherReport,
+                'ReportInfo' => $ReportInfo,
+                'Status' => 1,
+                'OtherTime' => Carbon::now(),
+                'ModifiedTime' => Carbon::now(),
+            ]);
 
+        return $result;
     }
 
     /**
@@ -167,9 +248,46 @@ class ReportService extends BaseService
             'EmployeeId' => $EmployeeId,
             'QuestionId' => $QuestionId,
             'ChooseId' => $ChooseId,
-            'status' => $OnlineStatus,
+            'Status' => $OnlineStatus,
             'CreatedTime' => Carbon::now(),
         ]);
+
+        return $result;
+    }
+
+    /**
+     * 根据ReportId，获取自评报告
+     *
+     * @param $ReportId
+     * @return array
+     */
+    public static function getUserReport($ReportId){
+        $result = DB::table('snets_tst_Report')->select([
+            'UserReport', 'OtherId', 'RankId', 'ReportInfo'
+        ])
+            ->where('Id', '=', $ReportId)
+            ->get()
+            ->toArray();
+
+        return $result[0];
+    }
+
+    /**
+     * 根据ReportId，获取勾选答案
+     *
+     * @param $ReportId
+     * @param $OnlineStatus
+     * @return array
+     */
+    public static function getAnswerArray($ReportId, $OnlineStatus){
+
+        $result = DB::table('snets_tst_Answer')->select([
+            'QuestionId', 'ChooseId', 'Status'
+        ])
+            ->where('ReportId', '=', $ReportId)
+            ->where('Status', '=', $OnlineStatus)
+            ->get()
+            ->toArray();
 
         return $result;
     }

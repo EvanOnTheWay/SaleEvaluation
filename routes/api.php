@@ -22,6 +22,8 @@ Route::group(['namespace' => 'Front'],
 
         Route::post('/report/index', 'ReportController@index');
         Route::post('/report/create', 'ReportController@create');
+        Route::post('/report/entryDetail', 'ReportController@entryDetail');
+        Route::post('/report/optionDetail', 'ReportController@optionDetail');
 
     });
 
