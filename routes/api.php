@@ -20,10 +20,10 @@ use Illuminate\Http\Request;
 Route::group(['namespace' => 'Front'],
     function () {
 
-        Route::post('/report/index', 'ReportController@index');
+        Route::get('/report/index', 'ReportController@index');
         Route::post('/report/create', 'ReportController@create');
-        Route::post('/report/entryDetail', 'ReportController@entryDetail');
-        Route::post('/report/optionDetail', 'ReportController@optionDetail');
+        Route::get('/report/entryDetail', 'ReportController@entryDetail');
+        Route::get('/report/optionDetail', 'ReportController@optionDetail');
 
     });
 
