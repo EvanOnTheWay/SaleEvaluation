@@ -188,7 +188,7 @@ class ReportService extends BaseService
             'UserContents' => $UserContents,
             'UserContentx' => $UserContentx,
             'Type' => $Type,
-            'UserSummary' => $Summary,
+            'Summary' => $Summary,
             'UserReport' => $UserReport,
             'ReportInfo' => $UserReport,
             'Status' => $Status,
@@ -207,12 +207,12 @@ class ReportService extends BaseService
      * @param $OtherContent
      * @param $OtherContents
      * @param $OtherContentx
-     * @param $OtherSummary
+     * @param $Summary
      * @param $OtherReport
      * @param $ReportInfo
      * @return int
      */
-    public static function updateReport($ReportId, $OtherContent, $OtherContents, $OtherContentx, $OtherSummary, $OtherReport, $ReportInfo)
+    public static function updateReport($ReportId, $OtherContent, $OtherContents, $OtherContentx, $Summary, $OtherReport, $ReportInfo)
     {
         $result = DB::table('snets_tst_Report')
             ->where('Id', $ReportId)
@@ -220,7 +220,7 @@ class ReportService extends BaseService
                 'OtherContent' => $OtherContent,
                 'OtherContents' => $OtherContents,
                 'OtherContentx' => $OtherContentx,
-                'OtherSummary' => $OtherSummary,
+                'Summary' => $Summary,
                 'OtherReport' => $OtherReport,
                 'ReportInfo' => $ReportInfo,
                 'Status' => 1,

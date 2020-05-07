@@ -146,14 +146,23 @@ class ReportController extends Controller
             }
 
             // 整合评测总结
-            $standard_less = implode(",", $standard_less);
-            $standard_equal = implode(",", $standard_equal);
-            $standard_greater = implode(",", $standard_greater);
-            $UserSummary = $standard_less . "：还需加油；" . $standard_equal . "：能力达标;" . $standard_greater . "：表现优异！";
+            if (!empty($standard_less)) {
+                $standard_less = implode(",", $standard_less);
+                $Summary_less = $standard_less . "：还需加油；";
+            }
+            if (!empty($standard_equal)) {
+                $standard_equal = implode(",", $standard_equal);
+                $Summary_equal = $standard_equal . "：能力达标；";
+            }
+            if (!empty($standard_greater)) {
+                $standard_greater = implode(",", $standard_greater);
+                $Summary_greater = $standard_greater . "：表现优异；";
+            }
+            $Summary = $Summary_less . $Summary_equal . $Summary_greater;
             $Reports = json_encode($entry_array, JSON_UNESCAPED_UNICODE);
 
             // 评测记录数据入库
-            $result = ReportService::insertReport($RankId, $EmployeeId, $OtherId, $UserContent, $UserContents, $UserContentx, $Type, $UserSummary, $Reports);
+            $result = ReportService::insertReport($RankId, $EmployeeId, $OtherId, $UserContent, $UserContents, $UserContentx, $Type, $Summary, $Reports);
 
             // 自评勾选选项入库
             foreach ($option_array as $va) {
@@ -306,16 +315,25 @@ class ReportController extends Controller
             }
 
             // 整合评测总结
-            $standard_less = implode(",", $standard_less);
-            $standard_equal = implode(",", $standard_equal);
-            $standard_greater = implode(",", $standard_greater);
-            $OtherSummary = $standard_less . "：还需加油；" . $standard_equal . "：能力达标;" . $standard_greater . "：表现优异！";
+            if (!empty($standard_less)) {
+                $standard_less = implode(",", $standard_less);
+                $Summary_less = $standard_less . "：还需加油；";
+            }
+            if (!empty($standard_equal)) {
+                $standard_equal = implode(",", $standard_equal);
+                $Summary_equal = $standard_equal . "：能力达标；";
+            }
+            if (!empty($standard_greater)) {
+                $standard_greater = implode(",", $standard_greater);
+                $Summary_greater = $standard_greater . "：表现优异；";
+            }
+            $Summary = $Summary_less . $Summary_equal . $Summary_greater;
 
             // 最终报告JSON
             $ReportInfo = json_encode($entry_array, JSON_UNESCAPED_UNICODE);
 
             // 评测记录数据更新
-            ReportService::updateReport($ReportId, $OtherContent, $OtherContents, $OtherContentx, $OtherSummary, $OtherReport, $ReportInfo);
+            ReportService::updateReport($ReportId, $OtherContent, $OtherContents, $OtherContentx, $Summary, $OtherReport, $ReportInfo);
 
             // 他评勾选选项入库
             foreach ($option_array as $va) {
