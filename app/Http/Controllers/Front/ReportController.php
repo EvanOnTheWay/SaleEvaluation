@@ -43,6 +43,26 @@ class ReportController extends Controller
         }
         $OnlineStatus = $request->input('OnlineStatus');
 
+        // 评测等级小于、等于、大于标准
+        $standard_less = array();
+        $standard_equal = array();
+        $standard_greater = array();
+        // 定义不在评测等级范围内的数组
+        $standard_outside = array();
+        // 定义选项总数组，用于存答案表
+        $option_array = array();
+
+        // 获取接收到的报告数组
+        $GetReport = $request->input('ReportInfo');
+
+        // 报告数组处理，取出词条
+        $entry_array = array();
+        foreach ($GetReport as $value) {
+            foreach ($value['entry_data'] as $vs) {
+                $entry_array[] = $vs;
+            }
+        }
+
         /**
          * 如果当前提交为自评
          */
@@ -53,25 +73,6 @@ class ReportController extends Controller
             $OtherId = $request->input('OtherId');
             $EmployeeId = $request->input('EmployeeId');
 
-            // 模拟自评报告数据
-            $UserReport = ReportService::getRankInfos($RankId);
-
-            // 自评报告处理，取出词条
-            $entry_array = array();
-            foreach ($UserReport as $value) {
-                foreach ($value->entry_data as $vs) {
-                    $entry_array[] = $vs;
-                }
-            }
-
-            // 定义自评等级小于、等于、大于标准数组
-            $standard_less = array();
-            $standard_equal = array();
-            $standard_greater = array();
-
-            // 定义选项总数组，存入答案表
-            $option_array = array();
-
             // 自评等级处理
             foreach ($entry_array as $key => $value) {
 
@@ -79,11 +80,11 @@ class ReportController extends Controller
                 $option_val_array = array();
 
                 // 问题列表、选项列表遍历
-                foreach ($value->question_data as $vs) {
-                    foreach ($vs->option_data as $vx) {
-                        if ($vx->Status == 1) {
-                            $vx->QuestionId = $vs->Id;
-                            $vx->ChooseId = $vx->Id;
+                foreach ($value['question_data'] as $vs) {
+                    foreach ($vs['option_data'] as $vx) {
+                        if ($vx['Status'] == 1) {
+                            $vx['QuestionId'] = $vs['Id'];
+                            $vx['ChooseId'] = $vx['Id'];
                             $option_array[] = $vx;
                             $option_val_array[] = $vx;
                         }
@@ -94,15 +95,15 @@ class ReportController extends Controller
                 $option_num = count($option_val_array);
 
                 // 评分标准转数组
-                $ScoreCriteria = $value->ScoreCriteria;
+                $ScoreCriteria = $value['ScoreCriteria'];
                 $ScoreArray = json_decode($ScoreCriteria, true);
 
                 // 评测标准对应分值
                 $ser_codes = config('services.ScoreCriteria');
 
                 // 当前词条标准分数
-                $standard = $ser_codes[trim($value->ArrivelLevel)];
-                $value->StandardSource = $standard;
+                $standard = $ser_codes[trim($value['ArrivelLevel'])];
+                $entry_array[$key]['StandardSource'] = $standard;
 
                 // 自评输入内容
                 $UserContent = $request->input('UserContent');
@@ -110,63 +111,74 @@ class ReportController extends Controller
                 $UserContentx = $request->input('UserContentx');
 
                 // 他评等级，分数
-                $value->OtherRank = "";
-                $value->OtherSource = "";
+                $entry_array[$key]['OtherRank'] = "";
+                $entry_array[$key]['OtherSource'] = "";
+                $entry_array[$key]['OtherColor'] = "";
 
                 // 如果小于最低评分标准，则自评等级为：标准范围之外
-                $LowSource = explode("-", $ScoreArray['f']);
+                $LowSource = explode("-", $ScoreArray['F']);
                 if ($option_num < $LowSource[0]) {
-                    $value->UserRank = "!";
-                    $value->UserSource = "!";
-                    $value->UserColor = 4;
+                    $entry_array[$key]['UserRank'] = "!";
+                    $entry_array[$key]['UserSource'] = "!";
+                    $entry_array[$key]['UserColor'] = 4;
+                    $standard_outside[] = "<span style='color: #fe6305'>".$value['Title']."</span>";
                 }
 
                 // 计算自评等级，分数
                 foreach ($ScoreArray as $kz => $vz) {
                     $scope = explode("-", $vz);
                     if ($option_num >= $scope[0] && $option_num <= $scope[1]) {
-                        $value->UserRank = $kz;
+                        $entry_array[$key]['UserRank'] = $kz;
                         $UserSource = $ser_codes[$kz];
-                        $value->UserSource = $ser_codes[$kz];
+                        $entry_array[$key]['UserSource'] = $ser_codes[$kz];
                         // UserColor：1小于，2等于，3大于，4范围外
                         if ($UserSource > $standard) {
-                            $value->UserColor = 3;
-                            $standard_greater[] = $value->Title;
+                            $entry_array[$key]['UserColor'] = 3;
+                            $standard_greater[] = "<span style='color: #fe6305'>".$value['Title']."</span>";
                         }
                         if ($UserSource == $standard) {
-                            $value->UserColor = 2;
-                            $standard_equal[] = $value->Title;
+                            $entry_array[$key]['UserColor'] = 2;
+                            $standard_equal[]   = "<span style='color: #fe6305'>".$value['Title']."</span>";
                         }
                         if ($UserSource < $standard) {
-                            $value->UserColor = 1;
-                            $standard_less[] = $value->Title;
+                            $entry_array[$key]['UserColor'] = 1;
+                            $standard_less[]    = "<span style='color: #fe6305'>".$value['Title']."</span>";
                         }
                     }
+
                 }
             }
 
             // 整合评测总结
+            $Summary_less = "";
             if (!empty($standard_less)) {
                 $standard_less = implode(",", $standard_less);
                 $Summary_less = $standard_less . "：还需加油；";
             }
+            $Summary_equal = "";
             if (!empty($standard_equal)) {
                 $standard_equal = implode(",", $standard_equal);
                 $Summary_equal = $standard_equal . "：能力达标；";
             }
+            $Summary_greater = "";
             if (!empty($standard_greater)) {
                 $standard_greater = implode(",", $standard_greater);
                 $Summary_greater = $standard_greater . "：表现优异；";
             }
-            $Summary = $Summary_less . $Summary_equal . $Summary_greater;
-            $Reports = json_encode($entry_array, JSON_UNESCAPED_UNICODE);
+            $Summary_outside = "";
+            if (!empty($standard_outside)) {
+                $standard_outside = implode(",", $standard_outside);
+                $Summary_outside = $standard_outside . "：低于基础销售岗位最低标准；";
+            }
+            $Summary = $Summary_less . $Summary_equal . $Summary_greater . $Summary_outside;
 
             // 评测记录数据入库
+            $Reports = json_encode($entry_array, JSON_UNESCAPED_UNICODE);
             $result = ReportService::insertReport($RankId, $EmployeeId, $OtherId, $UserContent, $UserContents, $UserContentx, $Type, $Summary, $Reports);
 
             // 自评勾选选项入库
             foreach ($option_array as $va) {
-                ReportService::insertAnswer($result, $EmployeeId, $va->QuestionId, $va->ChooseId, $OnlineStatus);
+                ReportService::insertAnswer($result, $EmployeeId, $va['QuestionId'], $va['ChooseId'], $OnlineStatus);
             }
 
             return ResponseWrapper::success();
@@ -182,25 +194,6 @@ class ReportController extends Controller
             // 获取已完成的自评报告数据
             $UserReportInfo = ReportService::getUserReport($ReportId);
 
-            // 模拟他评报告数据
-            $OtherReport = ReportService::getRankInfos($UserReportInfo->RankId);
-
-            // 他评报告处理，取出词条
-            $entry_array = array();
-            foreach ($OtherReport as $value) {
-                foreach ($value->entry_data as $vs) {
-                    $entry_array[] = $vs;
-                }
-            }
-
-            // 定义他评等级小于、等于、大于标准数组
-            $standard_less = array();
-            $standard_equal = array();
-            $standard_greater = array();
-
-            // 定义选项总数组，存入答案表
-            $option_array = array();
-
             // 他评等级处理
             foreach ($entry_array as $key => $value) {
 
@@ -208,11 +201,11 @@ class ReportController extends Controller
                 $option_val_array = array();
 
                 // 问题列表、选项列表遍历
-                foreach ($value->question_data as $vs) {
-                    foreach ($vs->option_data as $vx) {
-                        if ($vx->Status == 1) {
-                            $vx->QuestionId = $vs->Id;
-                            $vx->ChooseId = $vx->Id;
+                foreach ($value['question_data'] as $vs) {
+                    foreach ($vs['option_data'] as $vx) {
+                        if ($vx['Status'] == 1) {
+                            $vx['QuestionId'] = $vs['Id'];
+                            $vx['ChooseId'] = $vx['Id'];
                             $option_array[] = $vx;
                             $option_val_array[] = $vx;
                         }
@@ -223,15 +216,15 @@ class ReportController extends Controller
                 $option_num = count($option_val_array);
 
                 // 评分标准转数组
-                $ScoreCriteria = $value->ScoreCriteria;
+                $ScoreCriteria = $value['ScoreCriteria'];
                 $ScoreArray = json_decode($ScoreCriteria, true);
 
                 // 评测标准对应分值
                 $ser_codes = config('services.ScoreCriteria');
 
                 // 当前词条标准分数
-                $standard = $ser_codes[trim($value->ArrivelLevel)];
-                $value->StandardSource = $standard;
+                $standard = $ser_codes[trim($value['ArrivelLevel'])];
+                $entry_array[$key]['StandardSource'] = $standard;
 
                 // 他评输入内容
                 $OtherContent = $request->input('OtherContent');
@@ -239,16 +232,18 @@ class ReportController extends Controller
                 $OtherContentx = $request->input('OtherContentx');
 
                 // 自评等级，分数
-                $value->UserRank = "";
-                $value->UserSource = "";
+                $entry_array[$key]['UserRank'] = "";
+                $entry_array[$key]['UserSource'] = "";
+                $entry_array[$key]['UserColor'] = "";
 
                 // 如果小于最低评分标准，则他评等级为：标准范围之外
-                $LowSource = explode("-", $ScoreArray['f']);
+                $LowSource = explode("-", $ScoreArray['F']);
                 if ($option_num < $LowSource[0]) {
                     // UserColor：他评等级颜色
-                    $value->OtherRank = "!";
-                    $value->OtherSource = "!";
-                    $value->OtherColor = 4;
+                    $entry_array[$key]['OtherRank'] = "!";
+                    $entry_array[$key]['OtherSource'] = "!";
+                    $entry_array[$key]['OtherColor'] = 4;
+                    $standard_outside[] = "<span style='color: #fe6305'>".$value['Title']."</span>";
                 }
 
                 // 计算他评等级
@@ -256,21 +251,21 @@ class ReportController extends Controller
                     $scope = explode("-", $vz);
                     if ($option_num >= $scope[0] && $option_num <= $scope[1]) {
                         // 他评等级，分数
-                        $value->OtherRank = $kz;
+                        $entry_array[$key]['OtherRank'] = $kz;
                         $OtherSource = $ser_codes[$kz];
-                        $value->OtherSource = $ser_codes[$kz];
+                        $entry_array[$key]['OtherSource'] = $ser_codes[$kz];
                         // 自评等级和标准对比：1小于，2等于，3大于
                         if ($OtherSource > $standard) {
-                            $value->OtherColor = 3;
-                            $standard_greater[] = $value->Title;
+                            $entry_array[$key]['OtherColor'] = 3;
+                            $standard_greater[] = "<span style='color: #fe6305'>".$value['Title']."</span>";
                         }
                         if ($OtherSource == $standard) {
-                            $value->OtherColor = 2;
-                            $standard_equal[] = $value->Title;
+                            $entry_array[$key]['OtherColor'] = 2;
+                            $standard_equal[] = "<span style='color: #fe6305'>".$value['Title']."</span>";
                         }
                         if ($OtherSource < $standard) {
-                            $value->OtherColor = 1;
-                            $standard_less[] = $value->Title;
+                            $entry_array[$key]['OtherColor'] = 1;
+                            $standard_less[] = "<span style='color: #fe6305'>".$value['Title']."</span>";
                         }
                     }
                 }
@@ -284,17 +279,17 @@ class ReportController extends Controller
              */
             $UserAnswerArray = ReportService::getAnswerArray($ReportId, 1);
             foreach ($entry_array as $key => $value) {
-                foreach ($value->question_data as $kv => $vv) {
-                    foreach ($vv->option_data as $kz => $vz) {
+                foreach ($value['question_data'] as $kv => $vv) {
+                    foreach ($vv['option_data'] as $kz => $vz) {
                         foreach ($UserAnswerArray as $km => $vm) {
-                            if($vz->Id == $vm->ChooseId) {
+                            if($vz['Id'] == $vm['ChooseId']) {
                                 // 自评勾选，他评未勾选，Status = 2
-                                if($vz->Status == 0) {
-                                    $vz->Status = 2;
+                                if($vz['Status'] == 0) {
+                                    $vz['Status'] = 2;
                                 }
                                 // 自评、他评都勾选
-                                if($vz->Status == 1) {
-                                    $vz->Status = 3;
+                                if($vz['Status'] == 1) {
+                                    $vz['Status'] = 3;
                                 }
                             }
                         }
@@ -306,38 +301,44 @@ class ReportController extends Controller
             // 最终报告中，加入之前自评的等级和分数
             foreach ($entry_array as $key => $value) {
                 foreach (json_decode($UserReportInfo->UserReport) as $ks => $vs) {
-                    if ($value->Id == $vs->Id && isset($vs->UserRank)) {
-                        $value->UserRank = $vs->UserRank;
-                        $value->UserSource = $vs->UserSource;
-                        $value->UserColor = $vs->UserColor;
+                    if ($value['Id'] == $vs['Id'] && isset($vs['UserRank'])) {
+                        $entry_array[$key]['UserRank'] = $vs['UserRank'];
+                        $entry_array[$key]['UserSource'] = $vs['UserSource'];
+                        $entry_array[$key]['UserColor'] = $vs['UserColor'];
                     }
                 }
             }
 
             // 整合评测总结
+            $Summary_less = "";
             if (!empty($standard_less)) {
                 $standard_less = implode(",", $standard_less);
                 $Summary_less = $standard_less . "：还需加油；";
             }
+            $Summary_equal = "";
             if (!empty($standard_equal)) {
                 $standard_equal = implode(",", $standard_equal);
                 $Summary_equal = $standard_equal . "：能力达标；";
             }
+            $Summary_greater = "";
             if (!empty($standard_greater)) {
                 $standard_greater = implode(",", $standard_greater);
                 $Summary_greater = $standard_greater . "：表现优异；";
             }
-            $Summary = $Summary_less . $Summary_equal . $Summary_greater;
-
-            // 最终报告JSON
-            $ReportInfo = json_encode($entry_array, JSON_UNESCAPED_UNICODE);
+            $Summary_outside = "";
+            if (!empty($standard_outside)) {
+                $standard_outside = implode(",", $standard_outside);
+                $Summary_outside = $standard_outside . "：低于基础销售岗位最低标准；";
+            }
+            $Summary = $Summary_less . $Summary_equal . $Summary_greater . $Summary_outside;
 
             // 评测记录数据更新
+            $ReportInfo = json_encode($entry_array, JSON_UNESCAPED_UNICODE);
             ReportService::updateReport($ReportId, $OtherContent, $OtherContents, $OtherContentx, $Summary, $OtherReport, $ReportInfo);
 
             // 他评勾选选项入库
             foreach ($option_array as $va) {
-                ReportService::insertAnswer($ReportId, $UserReportInfo->OtherId, $va->QuestionId, $va->ChooseId, $OnlineStatus);
+                ReportService::insertAnswer($ReportId, $UserReportInfo['OtherId'], $va['QuestionId'], $va['ChooseId'], $OnlineStatus);
             }
 
             return ResponseWrapper::success();
@@ -364,7 +365,19 @@ class ReportController extends Controller
             unset($value->question_data);
         }
 
-        return ResponseWrapper::success($info);
+        // 重新赋值新数组
+        $data['entry_array'] = $info;
+        $data['OtherId'] = $result->OtherId;
+        $data['RankId'] = $result->RankId;
+        $data['UserContent'] = $result->UserContent;
+        $data['UserContents'] = $result->UserContents;
+        $data['UserContentx'] = $result->UserContentx;
+        $data['OtherContent'] = $result->OtherContent;
+        $data['OtherContents'] = $result->OtherContents;
+        $data['OtherContentx'] = $result->OtherContentx;
+        $data['Summary'] = $result->Summary;
+
+        return ResponseWrapper::success($data);
     }
 
     /**
