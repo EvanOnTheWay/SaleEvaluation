@@ -35,7 +35,7 @@ class ReportService extends BaseService
         // 对应词条
         foreach ($ability_data as $key => $value) {
             $entry_data = DB::table('snets_emp_Ability')->select([
-                'Id', 'Title', 'Pid', 'Intro', 'ScoreCriteria', 'ArrivelLevel'
+                'Id', 'Title', 'Pid', 'Intro', 'EntryLevelDes', 'ScoreCriteria', 'ArrivelLevel'
             ])
                 ->where('Depth', '=', '2')
                 ->where('Pid', '=', $value->Id)

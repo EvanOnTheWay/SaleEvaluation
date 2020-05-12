@@ -82,7 +82,7 @@ class ReportController extends Controller
                 // 问题列表、选项列表遍历
                 foreach ($value['question_data'] as $vs) {
                     foreach ($vs['option_data'] as $vx) {
-                        if ($vx['Status'] == 1) {
+                        if ($vx['Status'] == 2) {
                             $vx['QuestionId'] = $vs['Id'];
                             $vx['ChooseId'] = $vx['Id'];
                             $option_array[] = $vx;
@@ -157,22 +157,22 @@ class ReportController extends Controller
             $Summary_less = "";
             if (!empty($standard_less)) {
                 $standard_less = implode(",", $standard_less);
-                $Summary_less = $standard_less . "：还需加油；";
+                $Summary_less = "还需加油：".$standard_less."<br>";
             }
             $Summary_equal = "";
             if (!empty($standard_equal)) {
                 $standard_equal = implode(",", $standard_equal);
-                $Summary_equal = $standard_equal . "：能力达标；";
+                $Summary_equal = "能力达标：".$standard_equal."<br>";
             }
             $Summary_greater = "";
             if (!empty($standard_greater)) {
                 $standard_greater = implode(",", $standard_greater);
-                $Summary_greater = $standard_greater . "：表现优异；";
+                $Summary_greater = "表现优异：".$standard_greater."<br>";
             }
             $Summary_outside = "";
             if (!empty($standard_outside)) {
                 $standard_outside = implode(",", $standard_outside);
-                $Summary_outside = $standard_outside . "：低于基础销售岗位最低标准；";
+                $Summary_outside = "低于基础销售岗位最低标准：".$standard_outside;
             }
             $Summary = $Summary_less . $Summary_equal . $Summary_greater . $Summary_outside;
 
@@ -313,7 +313,8 @@ class ReportController extends Controller
                     if ($value['Id'] == $vs->Id && isset($vs->UserRank)) {
                         $entry_array[$key]['UserRank'] = $vs->UserRank;
                         $entry_array[$key]['UserSource'] = $vs->UserSource;
-                        $entry_array[$key]['UserColor'] = $vs->UserColor;
+                        //$entry_array[$key]['UserColor'] = $vs->UserColor;
+                        $entry_array[$key]['UserColor'] = 0;
                     }
                 }
             }
@@ -322,22 +323,22 @@ class ReportController extends Controller
             $Summary_less = "";
             if (!empty($standard_less)) {
                 $standard_less = implode(",", $standard_less);
-                $Summary_less = $standard_less . "：还需加油；";
+                $Summary_less = "还需加油：".$standard_less."<br>";
             }
             $Summary_equal = "";
             if (!empty($standard_equal)) {
                 $standard_equal = implode(",", $standard_equal);
-                $Summary_equal = $standard_equal . "：能力达标；";
+                $Summary_equal = "能力达标：".$standard_equal."<br>";
             }
             $Summary_greater = "";
             if (!empty($standard_greater)) {
                 $standard_greater = implode(",", $standard_greater);
-                $Summary_greater = $standard_greater . "：表现优异；";
+                $Summary_greater = "表现优异：".$standard_greater."<br>";
             }
             $Summary_outside = "";
             if (!empty($standard_outside)) {
                 $standard_outside = implode(",", $standard_outside);
-                $Summary_outside = $standard_outside . "：低于基础销售岗位最低标准；";
+                $Summary_outside = "低于基础销售岗位最低标准：".$standard_outside;
             }
             $Summary = $Summary_less . $Summary_equal . $Summary_greater . $Summary_outside;
 
