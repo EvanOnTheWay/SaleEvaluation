@@ -346,7 +346,6 @@ class ReportController extends Controller
             $ReportInfo = json_encode($entry_array);
             ReportService::updateReport($ReportId, $OtherContent, $OtherContents, $OtherContentx, $Summary, $OtherReport, $ReportInfo);
 
-
             // 他评勾选选项入库
             foreach ($option_array as $va) {
                 ReportService::insertAnswer($ReportId, $UserReportInfo->OtherId, $va['QuestionId'], $va['ChooseId'], $OnlineStatus);

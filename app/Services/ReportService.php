@@ -312,4 +312,19 @@ class ReportService extends BaseService
 
         return $result;
     }
+
+    /**
+     * 查找Employee -> UserId
+     * @param int $id
+     * @return mixed
+     */
+    public function selectEmployeeUserId(int $id)
+    {
+        $userId = DB::table('snets_emp_Employee')
+            ->select(['Id', 'UserId', 'Name', 'Positions'])
+            ->where('Id', '=', $id)
+            ->first();
+
+        return $userId;
+    }
 }

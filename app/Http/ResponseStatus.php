@@ -11,6 +11,7 @@ class ResponseStatus
 {
     public const SUCCESS = [100, "操作成功"];
     public const INVALID_PARAMETER = [101, "参数缺失或格式有误"];
+    public const REFER_ERROR = [102,"邀请失败"];
 
 
 }
